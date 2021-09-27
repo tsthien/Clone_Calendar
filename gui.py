@@ -46,10 +46,8 @@ class Algorithm:
     # Returns reference to global instance of algorithm
     def GetInstance():
         # make prototype of chromosomes
-        print("get instance")
         prototype = Schedule(2, 2, 80, 3)
         # make new global instance of algorithm using chromosome prototype
-        print("schedule")
         instance = Algorithm(100, 8, 5, prototype )
         
         return instance
@@ -72,10 +70,8 @@ class Algorithm:
 
         while 1:
             best = self.GetBestChromosome()
-            print("best", best.GetFitness())
             # algorithm has reached criteria?
             if best.GetFitness() >= 1:
-                print("best", best.GetFitness(), best.score)
                 return best
                 break
 
@@ -353,7 +349,6 @@ class Schedule:
                     # remove class hour from current time-space slot
                     c1 = self.slots[ pos1 + j ]
                     for k in range( 0, len( c1 ) ):
-                      #  print("c1[k] and cc1: ", c1[ k ], cc1)
                         if c1[ k ] == cc1:
                             del c1[ k ]
                             break
@@ -475,6 +470,8 @@ class Example(QMainWindow):
         super().__init__()
         
         self.initUI()
+        self.is_back = False
+        self.classes = ''
         
         
     def initUI(self):
@@ -498,6 +495,16 @@ class Example(QMainWindow):
         inputAction.setStatusTip('Set professor name')
         inputAction.triggered.connect(self.inputDialog)
 
+        inputGroupAction = QAction(QIcon('open.png'), 'ByGroup', self)
+        inputGroupAction.setShortcut('Ctrl+K')
+        inputGroupAction.setStatusTip('Set group name')
+        inputGroupAction.triggered.connect(self.inputDialog1)
+
+        backAction = QAction(QIcon('back.png'), 'Group', self)
+        backAction.setShortcut('Ctrl+G')
+        backAction.setStatusTip('Back')
+        backAction.triggered.connect(self.back)
+        
         self.statusBar()
 
         menubar = self.menuBar()
@@ -505,25 +512,39 @@ class Example(QMainWindow):
         fileMenu.addAction(openAction)
         fileMenu.addAction(startAction)
         fileMenu.addAction(inputAction)
+        fileMenu.addAction(inputGroupAction)
+        fileMenu.addAction(backAction)
         fileMenu.addAction(exitAction)
+        
 
 ##        palette = QPalette()
 ##        palette.setColor(QPalette.Background, QColor(255, 239, 213))
 ##        self.setPalette(palette)
-        global professor
+        global professor, group
         professor = ''
+        group = ''
         self.setGeometry(300, 400, 600, 600)
         self.setWindowTitle('Schedule - Genetic Algorithm')
 
         self.show()
+    def back(self):
+        global professor, test, group
+        professor = ''
+        group = ''
+        self.repaint()
+
 
     def inputDialog(self):
-        print("show dialog")
         text, ok = QInputDialog.getText(self, 'Input Dialog', 
             "Enter professor's name:")
         global professor
         professor = str(text)
-        print(str(text))
+
+    def inputDialog1(self):
+        text, ok = QInputDialog.getText(self, 'Input Dialog', 
+            "Enter group's name:")
+        global group
+        group = str(text)
 
     def showDialog(self):
         global fname
@@ -548,7 +569,6 @@ class Example(QMainWindow):
     def start(self):
        t1 = Thread(target=self.alg)
        t1.start()
-       t1.join()
 
     def alg(self):
         prototype = Schedule(2, 2, 80, 3)
@@ -558,18 +578,22 @@ class Example(QMainWindow):
         bestChromosome = instance.Start()
         global best
         best = True
+        self.repaint()
 
 
     def paintEvent(self, e):
-        print("paint event", test)
+        print("event"*10)
         if test == "test":
             return
         qp = QPainter(self)
         qp.begin(self)
-        if professor != '':
-            self.drawProfessor(qp)
+        if group != '':
+            self.drawGroup(qp)
         else:
-            self.drawRectangles(qp)
+            if professor != '':
+                self.drawProfessor(qp)
+            else:
+                self.drawRectangles(qp)
         qp.end()
 
 
@@ -625,7 +649,6 @@ class Example(QMainWindow):
 
                 if j == 0 and i > 0:
                     days = ["MON", "TUE", "WED", "THR", "FRI"]
-                    print("draw text")
                     qp.drawText(r1, Qt.AlignCenter, str(days[i - 1]))
                     #qp.drawRect(XRect, YRect, WidthRect, HeightRect)
                     
@@ -638,8 +661,6 @@ class Example(QMainWindow):
         qp.setTextWidth = 70
         
         classes = bestChromosome.GetClasses()
-        print(classes)
-        print(len(classes))
         ci = 0
         numberOfRooms = instance.GetNumberOfRooms()
         for it in classes.keys():
@@ -668,9 +689,8 @@ class Example(QMainWindow):
                 rect = QRect (XRect, YRect, WidthRect, HeightRect)
                 qp.drawText(rect, Qt.TextWordWrap | Qt.AlignVCenter | Qt.AlignHCenter, info)
                 qp.drawRect(XRect, YRect, WidthRect, HeightRect)
-                
-    def drawRectangles(self, qp):
-        print("draw rect")
+
+    def drawGroup(self, qp):
         DAYS_NUM = 5
         DAY_HOURS = 4
         
@@ -687,7 +707,100 @@ class Example(QMainWindow):
         GROUP_TABLE_HEIGHT = GROUP_CELL_HEIGHT * GROUP_ROW_NUMBER + GROUP_MARGIN_HEIGHT
 
         numberOfGroups = instance.GetNumberOfStudentGroups()
+
+        for i in range(0, GROUP_COLUMN_NUMBER):
+            for j in range(0, GROUP_ROW_NUMBER):
+
+                WidthRect = 95
+                HeightRect = 60
+                
+                XRect = GROUP_MARGIN_WIDTH + i * GROUP_CELL_WIDTH 
+                YRect = GROUP_MARGIN_HEIGHT + j * GROUP_CELL_HEIGHT
+                
+                font = qp.font()
+                font.setWeight(QFont.Bold)
+                font.setPointSize(12)
+                font.setFamily("Cyrillic")
+                qp.setFont(font)
+                
+                if i == 0 or j == 0:
+                    r1 = QRect (XRect, YRect, WidthRect, HeightRect)
+
+                if i == 0 and j == 0:
+                    font = qp.font()
+                    font.setPointSize(10)
+                    font.setBold(False)
+                    font.setFamily("Cyrillic")
+                    qp.setFont(font)
+                    qp.drawText(r1, Qt.AlignCenter, "Professor:\n" + professor)
+                    #qp.drawRect(XRect, YRect, WidthRect, HeightRect)
+                    
+
+                if i == 0 and j > 0:
+                    qp.drawText(r1, Qt.AlignCenter, str(i + j))
+                    #qp.drawRect(XRect, YRect, WidthRect, HeightRect)
+
+                if j == 0 and i > 0:
+                    days = ["MON", "TUE", "WED", "THR", "FRI"]
+                    qp.drawText(r1, Qt.AlignCenter, str(days[i - 1]))
+                    #qp.drawRect(XRect, YRect, WidthRect, HeightRect)
+                    
+        font = qp.font()
+        font.setPointSize(10)
+        font.setBold(False)
+        font.setFamily("Cyrillic")
+        qp.setFont(font)
+        qp.setPen(Qt.black)
+        qp.setTextWidth = 70
         
+        classes = bestChromosome.GetClasses()
+        ci = 0
+        numberOfRooms = instance.GetNumberOfRooms()
+        for it in classes.keys():
+            c = it
+            p = int ( classes[ it ] )
+
+            t = p % ( numberOfRooms * DAY_HOURS )
+            d = p // ( numberOfRooms * DAY_HOURS ) + 1
+            r = t // DAY_HOURS
+            t = t % DAY_HOURS + 1
+
+            grNumber = 0
+            info = ''
+            if c.GetGroups()[0].GetName() == group:
+                # Create corresponding rectangle
+                XRect = GROUP_MARGIN_WIDTH + d * GROUP_CELL_WIDTH
+                YRect = GROUP_MARGIN_HEIGHT + t * GROUP_CELL_HEIGHT
+                WidthRect = 95
+                HeightRect = c.GetDuration() * GROUP_CELL_HEIGHT
+                
+                info = c.GetCourse().GetName() + "\n"  + c.GetGroups()[0].GetName() + "\n"
+                info += instance.GetRoomById(r).GetName() + " "
+                if c.IsLabRequired():
+                    info += "Lab"
+
+                rect = QRect (XRect, YRect, WidthRect, HeightRect)
+                qp.drawText(rect, Qt.TextWordWrap | Qt.AlignVCenter | Qt.AlignHCenter, info)
+                qp.drawRect(XRect, YRect, WidthRect, HeightRect)
+                
+    def drawRectangles(self, qp):
+        print(self.is_back)
+        DAYS_NUM = 5
+        DAY_HOURS = 4
+        
+        GROUP_CELL_WIDTH = 95
+        GROUP_CELL_HEIGHT = 60
+
+        GROUP_MARGIN_WIDTH = 50
+        GROUP_MARGIN_HEIGHT = 40
+
+        GROUP_COLUMN_NUMBER = DAYS_NUM + 1
+        GROUP_ROW_NUMBER = DAY_HOURS + 1
+
+        GROUP_TABLE_WIDTH = GROUP_CELL_WIDTH * GROUP_COLUMN_NUMBER + GROUP_MARGIN_WIDTH
+        GROUP_TABLE_HEIGHT = GROUP_CELL_HEIGHT * GROUP_ROW_NUMBER + GROUP_MARGIN_HEIGHT
+
+        numberOfGroups = instance.GetNumberOfStudentGroups()
         for k in range(0, numberOfGroups):
             for i in range(0, GROUP_COLUMN_NUMBER):
                 for j in range(0, GROUP_ROW_NUMBER):
@@ -726,7 +839,6 @@ class Example(QMainWindow):
 
                     if j == 0 and i > 0:
                         days = ["MON", "TUE", "WED", "THR", "FRI"]
-                        print("draw text")
                         qp.drawText(r1, Qt.AlignCenter, str(days[i - 1]))
                         qp.drawRect(XRect, YRect, WidthRect, HeightRect)
 
@@ -740,20 +852,14 @@ class Example(QMainWindow):
             qp.setPen(Qt.black)
             qp.setTextWidth = 70
             
-            classes = bestChromosome.GetClasses()
+            if not self.is_back:
+                self.classes = bestChromosome.GetClasses()
+            classes = self.classes
             ci = 0
             numberOfRooms = instance.GetNumberOfRooms()
-            count = 0
             for it in classes.keys():
                 
                 c = it
-                print("======================")
-                print(c.professor.name)
-                print(c.duration)
-                count += int(c.duration)
-                print(c.groups)
-                for g in c.groups[0:1]:
-                    print(g.name)
                 p = int ( classes[ it ] )
 
                 t = p % ( numberOfRooms * DAY_HOURS )
@@ -775,11 +881,6 @@ class Example(QMainWindow):
                             HeightRect = GROUP_CELL_HEIGHT
                             XRect = l * WidthRect * (GROUP_COLUMN_NUMBER + 1) + GROUP_MARGIN_WIDTH + d * GROUP_CELL_WIDTH
                             YRect = m * HeightRect * (GROUP_ROW_NUMBER + 1) + GROUP_MARGIN_HEIGHT + t * GROUP_CELL_HEIGHT
-                            print("==============")
-                            print(YRect)
-                            print(m)
-                            print(HeightRect)
-                            print(t)
                             WidthRect = 95
                             HeightRect = c.GetDuration() * GROUP_CELL_HEIGHT
 
@@ -791,7 +892,6 @@ class Example(QMainWindow):
                             rect = QRect (XRect, YRect, WidthRect, HeightRect)
                             qp.drawText(rect, Qt.TextWordWrap | Qt.AlignVCenter | Qt.AlignHCenter, info)
                             qp.drawRect(XRect, YRect, WidthRect, HeightRect)
-            print("count:",count )
             test = "aaa"
         
 
